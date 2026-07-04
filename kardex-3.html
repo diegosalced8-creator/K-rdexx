@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kárdex — Control de materiales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #EDE6D6;
+    color: #1F2A44;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 36px 20px 60px; }
+  h1.title {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 34px;
+    letter-spacing: -0.5px;
+    margin: 0;
+  }
+  .subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    letter-spacing: 1.5px;
+    color: #8A7F63;
+    text-transform: uppercase;
+  }
+  .headerbar { display:flex; justify-content:space-between; align-items:flex-start; gap: 14px; flex-wrap:wrap; }
+  .rule { border-bottom: 2px solid #1F2A44; margin: 18px 0 28px; }
+  .mono-label { font-family:'JetBrains Mono', monospace; font-size:11px; color:#8A7F63; letter-spacing:1px; }
+  .k-input {
+    font-family: 'Inter', sans-serif;
+    background: #F7F3EA;
+    border: 1.5px solid #C9BFA5;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 14px;
+    color: #1F2A44;
+    outline: none;
+  }
+  .k-input:focus { border-color:#1F2A44; }
+  .k-btn {
+    font-family:'Inter', sans-serif; font-weight:600; border:none; border-radius:4px;
+    padding:9px 16px; font-size:13.5px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+    transition: transform .08s ease, opacity .15s ease;
+  }
+  .k-btn:active { transform: scale(0.97); }
+  .k-btn-primary { background:#1F2A44; color:#EDE6D6; }
+  .k-btn-primary:hover { opacity:.88; }
+  .k-btn-ghost { background:transparent; color:#1F2A44; border:1.5px solid #1F2A44; }
+  .k-btn-ghost:hover { background:#1F2A44; color:#EDE6D6; }
+  .k-btn-danger { background:transparent; color:#A6342A; border:1.5px solid #A6342A; }
+  .k-btn-danger:hover { background:#A6342A; color:#F7F3EA; }
+  .k-icon-btn { padding:4px; background:transparent; color:#8A7F63; }
+  .k-icon-btn:hover { color:#1F2A44; }
+  .card {
+    background:#F7F3EA; border:1.5px solid #C9BFA5; border-radius:8px;
+    padding:16px 16px 14px; cursor:pointer; position:relative; transition:border-color .12s ease;
+  }
+  .card:hover { border-color:#1F2A44; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap:14px; }
+  table { width:100%; border-collapse:collapse; min-width:640px; }
+  thead tr { background:#1F2A44; }
+  th { font-family:'JetBrains Mono', monospace; font-size:11.5px; letter-spacing:1px; color:#EDE6D6; padding:10px 12px; font-weight:500; }
+  td { padding:9px 12px; font-size:13.5px; border-top:1px solid #C9BFA5; }
+  tbody tr:hover { background:#F7F1E4; }
+  .mono { font-family:'JetBrains Mono', monospace; }
+  .empty-box {
+    border:1.5px dashed #C9BFA5; border-radius:8px; padding:56px 20px; text-align:center; color:#8A7F63;
+  }
+  .stamp {
+    width:108px; height:108px; border-radius:50%; border:3px double #4B6B4F;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    transform: rotate(-6deg); color:#4B6B4F; flex-shrink:0;
+  }
+  .stamp.neg { border-color:#A6342A; color:#A6342A; }
+  .field { display:flex; flex-direction:column; gap:4px; }
+  .field label { font-family:'JetBrains Mono', monospace; font-size:10.5px; color:#8A7F63; letter-spacing:.5px; }
+  .toast {
+    position:fixed; bottom:20px; right:20px; background:#1F2A44; color:#EDE6D6; padding:10px 16px;
+    border-radius:6px; font-size:13px; font-family:'Inter',sans-serif; opacity:0; transform:translateY(8px);
+    transition: opacity .2s ease, transform .2s ease; pointer-events:none; z-index:50;
+  }
+  .toast.show { opacity:1; transform:translateY(0); }
+  [data-lucide] { width:15px; height:15px; }
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(31,42,68,0.55); display:flex; align-items:center; justify-content:center;
+    padding:20px; z-index:100;
+  }
+  .modal-box {
+    background:#EDE6D6; border-radius:10px; max-width:640px; width:100%; max-height:88vh; overflow-y:auto;
+    padding:26px; border:1.5px solid #1F2A44;
+  }
+  .cuadro-row {
+    background:#F7F3EA; border:1.5px solid #C9BFA5; border-radius:6px; padding:14px; margin-bottom:12px;
+  }
+  .slot-pair { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  .slot-field label { display:block; font-family:'JetBrains Mono', monospace; font-size:10.5px; color:#8A7F63; letter-spacing:.5px; margin-bottom:4px; }
+  select.k-input { width:100%; appearance:none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%238A7F63'/></svg>"); background-repeat:no-repeat; background-position:right 10px center; padding-right:26px; }
+</style>
+</head>
+<body>
+<div id="app" class="wrap"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+/* ---------- utilidades ---------- */
+const STORAGE_KEY = "kardex-formatos";
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function todayISO(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function formatFechaDisplay(iso){
+  if(!iso) return "";
+  const [y,m,d] = iso.split("-");
+  return `${d}-${m}-${y.slice(2)}`;
+}
+function withSaldo(entries){
+  let running = 0;
+  return entries.map(e => {
+    running = running + (Number(e.entrada)||0) - (Number(e.salida)||0);
+    return { ...e, saldo: running };
+  });
+}
+function esc(v){
+  return String(v ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 1800);
+}
+
+/* ---------- estado y persistencia ---------- */
+let formatos = [];
+try { formatos = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch(e){ formatos = []; }
+// migración: las entradas antiguas no tenían "cuadro" (bloque 1 o 2) -> por defecto 1
+formatos.forEach(f => f.entries.forEach(e => { if(!e.cuadro) e.cuadro = 1; }));
+
+let view = { type: "list" };
+let showNewFormato = false;
+let newMaterialDraft = "";
+let lastCuadro = 1; // recuerda el último cuadro usado para que sea rápido seguir llenando el mismo
+let entryForm = { fecha: todayISO(), entrada: "", salida: "", observ: "", cuadro: 1 };
+let editingRowId = null;
+
+function persist(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(formatos));
+}
+
+/* ---------- render raíz ---------- */
+function render(){
+  const app = document.getElementById("app");
+  app.innerHTML = view.type === "detail" ? renderDetail(view.id) : renderList();
+  if (window.lucide) lucide.createIcons();
+}
+
+/* ---------- vista: listado ---------- */
+function renderList(){
+  const items = formatos.map(f => {
+    const withBal = withSaldo(f.entries);
+    const last = withBal[withBal.length-1];
+    const saldo = last ? last.saldo : 0;
+    const lastFecha = last ? last.fecha : null;
+    return `
+      <div class="card" onclick="openFormato('${f.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div style="display:flex;gap:8px;align-items:flex-start;">
+            <i data-lucide="package" style="color:#8A7F63;margin-top:3px;"></i>
+            <div style="font-family:'Fraunces',serif;font-weight:600;font-size:17px;line-height:1.25;">${esc(f.material)}</div>
+          </div>
+          <div style="display:flex;gap:2px;">
+            <button class="k-btn k-icon-btn" onclick="event.stopPropagation(); previewExport('${f.id}')" title="Exportar a Excel"><i data-lucide="download"></i></button>
+            <button class="k-btn k-icon-btn" onclick="event.stopPropagation(); removeFormato('${f.id}')" title="Eliminar formato"><i data-lucide="trash-2"></i></button>
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:flex-end;">
+          <div>
+            <div class="mono-label">SALDO</div>
+            <div class="mono" style="font-weight:700;font-size:24px;color:${saldo<0?'#A6342A':'#1F2A44'};">${saldo}</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="mono-label">${f.entries.length} MOV.</div>
+            <div class="mono" style="font-size:12px;color:#8A7F63;">${lastFecha ? formatFechaDisplay(lastFecha) : '—'}</div>
+          </div>
+        </div>
+      </div>`;
+  }).join("");
+
+  return `
+    <div class="headerbar">
+      <div>
+        <h1 class="title">Kárdex</h1>
+        <span class="subtitle">Control de materiales</span>
+      </div>
+    </div>
+    <div class="rule"></div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <div class="mono-label">${formatos.length} ${formatos.length===1?'FORMATO':'FORMATOS'} REGISTRADOS</div>
+      ${!showNewFormato ? `<button class="k-btn k-btn-primary" onclick="toggleNewFormato(true)"><i data-lucide="plus"></i>Nuevo material</button>` : ""}
+    </div>
+
+    ${showNewFormato ? `
+    <div style="background:#F7F3EA;border:1.5px solid #1F2A44;border-radius:6px;padding:18px;margin-bottom:24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <label class="mono-label">MATERIAL</label>
+      <input id="newMaterialInput" class="k-input" style="flex:1;min-width:200px;" placeholder="Ej: Cajas 3/9 AGU 25 kg" value="${esc(newMaterialDraft)}" onkeydown="if(event.key==='Enter') createFormato()">
+      <button class="k-btn k-btn-primary" onclick="createFormato()"><i data-lucide="check"></i>Crear</button>
+      <button class="k-btn k-btn-ghost" onclick="toggleNewFormato(false)"><i data-lucide="x"></i>Cancelar</button>
+    </div>` : ""}
+
+    ${formatos.length===0 && !showNewFormato ? `
+    <div class="empty-box">
+      <i data-lucide="archive" style="width:30px;height:30px;opacity:.6;margin-bottom:10px;"></i>
+      <div style="font-family:'Fraunces',serif;font-size:18px;color:#1F2A44;margin-bottom:4px;">Aún no hay formatos</div>
+      <div style="font-size:13.5px;">Crea uno para empezar a llevar el control de un material.</div>
+    </div>` : `<div class="grid">${items}</div>`}
+  `;
+}
+
+function toggleNewFormato(v){
+  showNewFormato = v;
+  newMaterialDraft = "";
+  render();
+  if (v) document.getElementById("newMaterialInput")?.focus();
+}
+function createFormato(){
+  const input = document.getElementById("newMaterialInput");
+  const name = (input ? input.value : "").trim();
+  if(!name) return;
+  const f = { id: uid(), material: name, createdAt: Date.now(), entries: [] };
+  formatos.unshift(f);
+  persist();
+  showNewFormato = false;
+  openFormato(f.id);
+}
+function removeFormato(id){
+  const f = formatos.find(x=>x.id===id);
+  if(!f) return;
+  if(!confirm(`¿Eliminar "${f.material}" y todo su historial?`)) return;
+  formatos = formatos.filter(x=>x.id!==id);
+  persist();
+  render();
+  toast("Formato eliminado");
+}
+function openFormato(id){
+  view = { type:"detail", id };
+  entryForm = { fecha: todayISO(), entrada:"", salida:"", observ:"", cuadro: lastCuadro };
+  editingRowId = null;
+  render();
+}
+
+/* ---------- vista: detalle de formato ---------- */
+function renderCuadroTable(label, rows){
+  const body = rows.length === 0
+    ? `<tr><td colspan="6" style="padding:20px;text-align:center;color:#8A7F63;font-size:13px;">Sin movimientos en este cuadro.</td></tr>`
+    : rows.map((r,i) => `
+      <tr style="background:${i%2===1?'#F7F3EA80':'transparent'};">
+        <td class="mono" style="text-align:right;">${formatFechaDisplay(r.fecha)}</td>
+        <td class="mono" style="text-align:right;color:${r.entrada?'#4B6B4F':'#C9BFA5'};">${r.entrada || '—'}</td>
+        <td class="mono" style="text-align:right;color:${r.salida?'#A6342A':'#C9BFA5'};">${r.salida || '—'}</td>
+        <td class="mono" style="text-align:right;font-weight:700;">${r.saldo}</td>
+        <td style="color:#5c5442;">${esc(r.observ||"")}</td>
+        <td style="text-align:center;">
+          <button class="k-btn k-icon-btn" onclick="startEditRow('${r.id}')"><i data-lucide="pencil"></i></button>
+          <button class="k-btn k-icon-btn" onclick="deleteRow('${r.id}')"><i data-lucide="trash-2"></i></button>
+        </td>
+      </tr>`).join("");
+
+  return `
+    <div class="mono-label" style="margin:18px 0 8px;">${label}</div>
+    <div style="overflow-x:auto;border:1.5px solid #1F2A44;border-radius:6px;">
+      <table>
+        <thead><tr>
+          <th style="text-align:right;">FECHA</th><th style="text-align:right;">ENTRADA</th><th style="text-align:right;">SALIDA</th>
+          <th style="text-align:right;">SALDO</th><th style="text-align:left;">OBSERVAC.</th><th></th>
+        </tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>`;
+}
+
+function renderDetail(id){
+  const f = formatos.find(x=>x.id===id);
+  if(!f){ view={type:"list"}; return renderList(); }
+  const withBal = withSaldo(f.entries); // saldo corrido sobre TODAS las filas en orden, sin importar el cuadro
+  const currentSaldo = withBal.length ? withBal[withBal.length-1].saldo : 0;
+  const rowsC1 = withBal.filter(r => (r.cuadro||1) === 1);
+  const rowsC2 = withBal.filter(r => (r.cuadro||1) === 2);
+
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <button class="k-btn" style="background:transparent;color:#1F2A44;padding:6px 4px;" onclick="backToList()"><i data-lucide="arrow-left"></i>Formatos</button>
+      <button class="k-btn k-btn-ghost" onclick="previewExport('${f.id}')"><i data-lucide="download"></i>Exportar a Excel</button>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px;border-bottom:2px solid #1F2A44;padding-bottom:16px;margin-bottom:22px;">
+      <div>
+        <div class="mono-label" style="margin-bottom:4px;">MATERIAL</div>
+        <div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="renameFormato('${f.id}')">
+          <h2 style="font-family:'Fraunces',serif;font-size:26px;margin:0;font-weight:600;">${esc(f.material)}</h2>
+          <i data-lucide="pencil" style="width:14px;height:14px;color:#8A7F63;"></i>
+        </div>
+      </div>
+      <div class="stamp ${currentSaldo<0?'neg':''}">
+        <div class="mono" style="font-size:9px;letter-spacing:1.5px;">SALDO</div>
+        <div class="mono" style="font-weight:700;font-size:26px;">${currentSaldo}</div>
+      </div>
+    </div>
+
+    <div style="background:#F7F3EA;border:1.5px solid #1F2A44;border-radius:6px;padding:16px;margin-bottom:10px;">
+      <div class="mono-label" style="margin-bottom:10px;">${editingRowId ? "EDITAR MOVIMIENTO" : "REGISTRAR MOVIMIENTO"}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div class="field" style="width:120px;">
+          <label>CUADRO</label>
+          <select id="f_cuadro" class="k-input">
+            <option value="1" ${entryForm.cuadro==1?"selected":""}>Cuadro 1</option>
+            <option value="2" ${entryForm.cuadro==2?"selected":""}>Cuadro 2</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>FECHA</label>
+          <input id="f_fecha" type="date" class="k-input" value="${entryForm.fecha}">
+        </div>
+        <div class="field" style="width:100px;">
+          <label>ENTRADA</label>
+          <input id="f_entrada" type="number" min="0" class="k-input" placeholder="0" value="${entryForm.entrada}">
+        </div>
+        <div class="field" style="width:100px;">
+          <label>SALIDA</label>
+          <input id="f_salida" type="number" min="0" class="k-input" placeholder="0" value="${entryForm.salida}">
+        </div>
+        <div class="field" style="flex:1;min-width:160px;">
+          <label>OBSERVAC.</label>
+          <input id="f_observ" class="k-input" style="width:100%;" placeholder="Opcional" value="${esc(entryForm.observ)}" onkeydown="if(event.key==='Enter') submitEntry('${f.id}')">
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="k-btn k-btn-primary" onclick="submitEntry('${f.id}')"><i data-lucide="${editingRowId?'check':'plus'}"></i>${editingRowId ? "Guardar" : "Agregar"}</button>
+          ${editingRowId ? `<button class="k-btn k-btn-ghost" onclick="cancelEditRow()"><i data-lucide="x"></i></button>` : ""}
+        </div>
+      </div>
+      <div style="font-size:12px;color:#8A7F63;margin-top:10px;">Cuando termines de llenar el Cuadro 1, simplemente cambia a "Cuadro 2" aquí arriba y sigue registrando — el saldo continúa normal.</div>
+    </div>
+
+    ${renderCuadroTable("CUADRO 1", rowsC1)}
+    ${renderCuadroTable("CUADRO 2", rowsC2)}
+  `;
+}
+
+function backToList(){ view = {type:"list"}; render(); }
+
+function readEntryForm(){
+  return {
+    fecha: document.getElementById("f_fecha").value,
+    entrada: document.getElementById("f_entrada").value,
+    salida: document.getElementById("f_salida").value,
+    observ: document.getElementById("f_observ").value,
+    cuadro: Number(document.getElementById("f_cuadro").value) || 1
+  };
+}
+
+function submitEntry(formatoId){
+  const form = readEntryForm();
+  if(!form.fecha) return;
+  const entrada = form.entrada === "" ? 0 : Number(form.entrada);
+  const salida = form.salida === "" ? 0 : Number(form.salida);
+  if(entrada===0 && salida===0) return;
+  const f = formatos.find(x=>x.id===formatoId);
+  if(!f) return;
+
+  if(editingRowId){
+    f.entries = f.entries.map(en => en.id===editingRowId ? {...en, fecha:form.fecha, entrada, salida, observ:form.observ, cuadro:form.cuadro} : en);
+  } else {
+    f.entries.push({ id: uid(), fecha: form.fecha, entrada, salida, observ: form.observ, cuadro: form.cuadro });
+  }
+  persist();
+  lastCuadro = form.cuadro;
+  entryForm = { fecha: todayISO(), entrada:"", salida:"", observ:"", cuadro: lastCuadro };
+  editingRowId = null;
+  render();
+}
+
+function startEditRow(rowId){
+  const f = formatos.find(x=>x.id===view.id);
+  const row = f.entries.find(e=>e.id===rowId);
+  if(!row) return;
+  editingRowId = rowId;
+  entryForm = { fecha: row.fecha, entrada: row.entrada ? String(row.entrada) : "", salida: row.salida ? String(row.salida) : "", observ: row.observ || "", cuadro: row.cuadro || 1 };
+  render();
+}
+function cancelEditRow(){
+  editingRowId = null;
+  entryForm = { fecha: todayISO(), entrada:"", salida:"", observ:"", cuadro: lastCuadro };
+  render();
+}
+function deleteRow(rowId){
+  if(!confirm("¿Eliminar este movimiento?")) return;
+  const f = formatos.find(x=>x.id===view.id);
+  f.entries = f.entries.filter(e=>e.id!==rowId);
+  persist();
+  if(editingRowId===rowId) cancelEditRow(); else render();
+}
+function renameFormato(id){
+  const f = formatos.find(x=>x.id===id);
+  const name = prompt("Nombre del material:", f.material);
+  if(name && name.trim()){
+    f.material = name.trim();
+    persist();
+    render();
+  }
+}
+
+/* ---------- exportar / vista previa ---------- */
+function cellStyles(){
+  const border = "border:1px solid #505050;";
+  return {
+    cellC: `${border}text-align:center;padding:3px 6px;font-size:11pt;font-family:Calibri,Arial,sans-serif;`,
+    cellL: `${border}text-align:left;padding:3px 6px;font-size:11pt;font-family:Calibri,Arial,sans-serif;`,
+    head: `${border}text-align:center;font-weight:bold;padding:4px 6px;font-size:11pt;font-family:Calibri,Arial,sans-serif;background:#ffffff;`,
+    none: "border:none;"
+  };
+}
+
+// Construye las 5 columnas de un cuadro para una fila dada (o celdas vacías si no hay dato en esa posición)
+function buildBlockCells(rows, rowIndex, s){
+  const r = rows[rowIndex];
+  if(!r){
+    return `<td style="${s.cellC}">&nbsp;</td><td style="${s.cellC}">&nbsp;</td><td style="${s.cellC}">&nbsp;</td><td style="${s.cellC}">&nbsp;</td><td style="${s.cellL}">&nbsp;</td>`;
+  }
+  return `<td style="${s.cellC}">${esc(formatFechaDisplay(r.fecha))}</td>
+    <td style="${s.cellC}">${r.entrada ? esc(r.entrada) : ""}</td>
+    <td style="${s.cellC}">${r.salida ? esc(r.salida) : ""}</td>
+    <td style="${s.cellC}">${esc(r.saldo)}</td>
+    <td style="${s.cellL}">${esc(r.observ)}</td>`;
+}
+
+// Exporta UN formato: el Cuadro 1 va a la tabla izquierda y el Cuadro 2 a la derecha,
+// tal como se llenan en la app (el saldo ya viene corrido sobre toda la secuencia).
+function buildKardexMarkup(formato){
+  const s = cellStyles();
+  const PADDING = 6;
+  const withBal = withSaldo(formato.entries);
+  const rowsC1 = withBal.filter(r => (r.cuadro||1) === 1);
+  const rowsC2 = withBal.filter(r => (r.cuadro||1) === 2);
+  const maxRows = Math.max(rowsC1.length, rowsC2.length) + PADDING;
+
+  const dataRows = Array.from({length:maxRows}).map((_,i) => `<tr>
+      ${buildBlockCells(rowsC1, i, s)}
+      <td style="${s.none}"></td>
+      ${buildBlockCells(rowsC2, i, s)}
+    </tr>`).join("");
+
+  return `<table id="kardexTable" style="border-collapse:collapse;">
+    <colgroup>
+      <col width="95"><col width="75"><col width="75"><col width="75"><col width="160">
+      <col width="22">
+      <col width="95"><col width="75"><col width="75"><col width="75"><col width="160">
+    </colgroup>
+    <tr style="height:26px;">
+      <td colspan="5" style="${s.none}font-size:16pt;font-weight:bold;color:#1F1F8F;font-family:Calibri,Arial,sans-serif;">BANAFRIOS S.A.S.</td>
+      <td style="${s.none}"></td>
+      <td colspan="5" style="${s.none}font-size:16pt;font-weight:bold;color:#1F1F8F;text-align:center;font-family:Calibri,Arial,sans-serif;">FINCA LAS MARGARITAS</td>
+    </tr>
+    <tr style="height:26px;">
+      <td colspan="5" style="${s.none}"></td>
+      <td style="${s.none}"></td>
+      <td colspan="5" style="${s.none}font-size:16pt;font-weight:bold;color:#CC0000;text-align:center;font-family:Calibri,Arial,sans-serif;">1294</td>
+    </tr>
+    <tr style="height:22px;">
+      <td colspan="4" style="${s.none}font-weight:bold;font-family:Calibri,Arial,sans-serif;font-size:11pt;">MATERIAL</td>
+      <td style="${s.none}border-bottom:1px solid #000;font-family:Calibri,Arial,sans-serif;font-size:11pt;">${esc(formato.material)}</td>
+      <td style="${s.none}"></td>
+      <td colspan="4" style="${s.none}font-weight:bold;font-family:Calibri,Arial,sans-serif;font-size:11pt;">MATERIAL</td>
+      <td style="${s.none}border-bottom:1px solid #000;font-family:Calibri,Arial,sans-serif;font-size:11pt;">${esc(formato.material)}</td>
+    </tr>
+    <tr style="height:8px;"><td colspan="11" style="${s.none}"></td></tr>
+    <tr>
+      <th style="${s.head}">Fecha</th><th style="${s.head}">Entrada</th><th style="${s.head}">Salida</th><th style="${s.head}">Saldo</th><th style="${s.head}">Observac.</th>
+      <td style="${s.none}"></td>
+      <th style="${s.head}">Fecha</th><th style="${s.head}">Entrada</th><th style="${s.head}">Salida</th><th style="${s.head}">Saldo</th><th style="${s.head}">Observac.</th>
+    </tr>
+    ${dataRows}
+  </table>`;
+}
+
+function previewExport(formatoId){
+  const f = formatos.find(x=>x.id===formatoId);
+  if(!f) return;
+  const tableHtml = buildKardexMarkup(f);
+  const slug = f.material.trim().replace(/[^a-zA-Z0-9]+/g,"_").slice(0,40) || "material";
+
+  const win = window.open("", "_blank");
+  if(!win){ toast("Habilita las ventanas emergentes para ver la vista previa"); return; }
+  win.document.open();
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Vista previa — ${esc(f.material)}</title>
+    <style>
+      body{font-family:Arial,sans-serif;margin:0;background:#e9e4d8;}
+      .toolbar{position:sticky;top:0;background:#1F2A44;color:#fff;padding:12px 22px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;}
+      .toolbar span{font-size:14px;}
+      .toolbar button{background:#A6342A;color:#fff;border:none;padding:9px 18px;border-radius:4px;cursor:pointer;font-size:13.5px;font-weight:600;}
+      .toolbar button:hover{opacity:.9;}
+      .toolbar button.secondary{background:transparent;border:1.5px solid #fff;}
+      .wrap{padding:28px;overflow:auto;}
+    </style></head>
+    <body>
+      <div class="toolbar">
+        <span>Vista previa — ${esc(f.material)} · Cuadro 1 (izq.) y Cuadro 2 (der.)</span>
+        <div style="display:flex;gap:10px;">
+          <button id="addRowsBtn" class="secondary">+ Agregar líneas</button>
+          <button id="dlBtn">⬇ Descargar como Excel (.xls)</button>
+        </div>
+      </div>
+      <div class="wrap">${tableHtml}</div>
+      <script>
+        const CELL_C = "border:1px solid #505050;text-align:center;padding:3px 6px;font-size:11pt;font-family:Calibri,Arial,sans-serif;";
+        const CELL_L = "border:1px solid #505050;text-align:left;padding:3px 6px;font-size:11pt;font-family:Calibri,Arial,sans-serif;";
+        const NONE = "border:none;";
+        document.getElementById('addRowsBtn').onclick = function(){
+          const table = document.getElementById('kardexTable');
+          for(let n=0; n<10; n++){
+            const tr = document.createElement('tr');
+            tr.innerHTML =
+              '<td style="'+CELL_C+'">&nbsp;</td><td style="'+CELL_C+'">&nbsp;</td><td style="'+CELL_C+'">&nbsp;</td><td style="'+CELL_C+'">&nbsp;</td><td style="'+CELL_L+'">&nbsp;</td>'
+              + '<td style="'+NONE+'"></td>'
+              + '<td style="'+CELL_C+'">&nbsp;</td><td style="'+CELL_C+'">&nbsp;</td><td style="'+CELL_C+'">&nbsp;</td><td style="'+CELL_C+'">&nbsp;</td><td style="'+CELL_L+'">&nbsp;</td>';
+            table.appendChild(tr);
+          }
+        };
+        document.getElementById('dlBtn').onclick = function(){
+          const inner = document.getElementById('kardexTable').outerHTML;
+          const doc = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">'
+            + '<head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Kardex</x:Name>'
+            + '<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>'
+            + '<body>' + inner + '</body></html>';
+          const blob = new Blob(['\\ufeff', doc], {type:'application/vnd.ms-excel;charset=utf-8'});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'Kardex_${slug}.xls';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(()=>URL.revokeObjectURL(url), 1000);
+        };
+      <\/script>
+    </body></html>`);
+  win.document.close();
+}
+
+render();
+</script>
+</body>
+</html>
